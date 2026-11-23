@@ -78,14 +78,17 @@ sequenceDiagram
 
 ```mermaid
 stateDiagram-v2
-  [*] --> 進行中: 騎士回報（EXPIRE = 類型 TTL）
-  進行中 --> 進行中: 有人按「還在」（TTL +15 分）
-  進行中 --> 進行中: 有人按「已排除」（< 3 票）
-  進行中 --> 已排除: 第 3 票「已排除」（DEL）
-  進行中 --> 已過期: TTL 歸零（Redis 自動刪除）
-  已排除 --> 歷史紀錄
-  已過期 --> 歷史紀錄
-  歷史紀錄 --> [*]: hist:* 保留給統計（FT.AGGREGATE）
+  state "進行中 report:*" as A
+  state "已排除" as B
+  state "已過期" as C
+  state "歷史紀錄 hist:*" as D
+  [*] --> A: 騎士回報 EXPIRE 類型TTL
+  A --> A: 按還在 TTL加15分 或 已排除未滿3票
+  A --> B: 第3票已排除 DEL
+  A --> C: TTL歸零 自動刪除
+  B --> D
+  C --> D
+  D --> [*]: 留給 FT.AGGREGATE 統計
 ```
 
 ## 5. 部署圖
