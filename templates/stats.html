@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>路況統計 RideAlert</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">⚠</span> 騎士路況 <small>RideAlert</small></div>
+  <nav>
+    <a href="/">地圖</a><a class="on" href="/stats">統計</a>
+    <span class="mode {{ 'cloud' if mode=='cloud' else '' }}">{{ 'Redis Cloud' if mode=='cloud' else '本機模擬' }}</span>
+  </nav>
+</header>
+<main class="page">
+  <div class="toolbar">
+    <select id="days"><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option></select>
+    <select id="type"><option value="">全部類型</option>{% for k, t in types.items() %}<option value="{{k}}">{{t.name}}</option>{% endfor %}</select>
+    <span class="sub" id="engine"></span>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><small>回報總數</small><b id="k1">-</b></div>
+    <div class="kpi"><small>最多的類型</small><b id="k2">-</b></div>
+    <div class="kpi"><small>最熱區域</small><b id="k3">-</b></div>
+    <div class="kpi"><small>尖峰時段</small><b id="k4">-</b></div>
+  </div>
+  <div class="grid">
+    <div class="panel"><h4>各區回報數 <span class="sub">FT.AGGREGATE GROUPBY @area</span></h4><canvas id="cArea" height="240"></canvas></div>
+    <div class="panel"><h4>一天中的時段 <span class="sub">GROUPBY @hour</span></h4><canvas id="cHour" height="240"></canvas></div>
+    <div class="panel"><h4>類型比例 <span class="sub">GROUPBY @type</span></h4><canvas id="cType" height="240"></canvas></div>
+    <div class="panel"><h4>星期分布 <span class="sub">GROUPBY @wday</span></h4><canvas id="cWday" height="240"></canvas></div>
+    <div class="panel"><h4>熱心騎士排行 <span class="sub">Sorted Set ZREVRANGE</span></h4><ol class="rank" id="rank"></ol></div>
+    <div class="panel"><h4>最新事件 <span class="sub">Streams XREVRANGE</span></h4><div class="feed" id="feed"></div></div>
+  </div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const T = {{ types|tojson }};
+const W = ["一","二","三","四","五","六","日"];
+Chart.defaults.color = "#8b95a5"; Chart.defaults.borderColor = "#262c36";
+Chart.defaults.font.family = '"Noto Sans TC","Microsoft JhengHei",sans-serif';
+const charts = {};
+function chart(id, type, labels, values, colors) {
+  charts[id]?.destroy();
+  charts[id] = new Chart(document.getElementById(id), { type,
+    data: { labels, datasets: [{ data: values, backgroundColor: colors || "#f97316", borderRadius: type === "bar" ? 6 : 0, borderWidth: type === "doughnut" ? 0 : undefined }] },
+    options: { plugins: { legend: { display: type === "doughnut", position: "right" } }, scales: type === "doughnut" ? {} : { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
+}
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+async function load() {
+  const s = await (await fetch(`/api/stats?days=${days.value}&type=${type.value}`)).json();
+  document.getElementById("engine").textContent = "統計引擎：" + s.engine;
+  const area = Object.entries(s.by_area).slice(0, 10);
+  const total = Object.values(s.by_type).reduce((a, b) => a + b, 0);
+  const topType = Object.entries(s.by_type).sort((a, b) => b[1] - a[1])[0];
+  const hours = Array.from({ length: 24 }, (_, h) => s.by_hour[h] || 0);
+  const peak = hours.indexOf(Math.max(...hours));
+  k1.textContent = total; k2.textContent = topType ? T[topType[0]].name : "-";
+  k3.textContent = area[0]?.[0] || "-"; k4.textContent = total ? `${peak}:00–${peak + 1}:00` : "-";
+  chart("cArea", "bar", area.map(a => a[0]), area.map(a => a[1]));
+  chart("cHour", "bar", hours.map((_, h) => h), hours, "#3b82f6");
+  const tk = Object.keys(s.by_type);
+  chart("cType", "doughnut", tk.map(k => T[k].name), tk.map(k => s.by_type[k]), tk.map(k => T[k].color));
+  chart("cWday", "bar", W.map(w => "週" + w), W.map((_, i) => s.by_wday[i] || 0), "#a855f7");
+  rank.innerHTML = s.ranking.map((r, i) => `<li><span>${i + 1}. ${esc(r.rider)}</span><b>${r.score}</b></li>`).join("");
+  feed.innerHTML = s.recent.map(e => {
+    const t = new Date(+e.sid.split("-")[0]).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+    if (e.event === "new") { const d = JSON.parse(e.data); return `<div>${t} <b>新回報</b> ${T[d.type].name}・${esc(d.area)}</div>`; }
+    return `<div>${t} <b>${e.event === "removed" ? "已排除" : "投票"}</b> #${esc(e.id)} ${e.kind === "still" ? "還在" : "已排除"}（${e.n}）</div>`;
+  }).join("");
+}
+days.onchange = type.onchange = load; load(); setInterval(load, 15000);
+</script>
+</body>
+</html>

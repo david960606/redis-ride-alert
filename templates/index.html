@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>騎士路況 RideAlert</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">⚠</span> 騎士路況 <small>RideAlert</small></div>
+  <nav>
+    <a class="on" href="/">地圖</a><a href="/stats">統計</a>
+    <span class="mode {{ 'cloud' if mode=='cloud' else '' }}" title="Redis 連線模式">{{ 'Redis Cloud' if mode=='cloud' else '本機模擬' }}</span>
+  </nav>
+</header>
+
+<div id="map"></div>
+
+<div class="filters" id="filters"></div>
+
+<button class="locate" id="locate" title="回到我的位置">◎</button>
+<button class="fab" id="fab">＋ 回報路況</button>
+
+<section class="sheet" id="sheet">
+  <div class="grip" id="grip"></div>
+  <div class="sheet-head">
+    <b>附近路況</b>
+    <select id="radius">
+      <option value="1">1 公里</option><option value="3" selected>3 公里</option><option value="5">5 公里</option><option value="10">10 公里</option>
+    </select>
+  </div>
+  <div id="list" class="list"></div>
+</section>
+
+<div class="modal" id="modal" hidden>
+  <div class="card">
+    <h3>回報路況</h3>
+    <p class="hint">位置：地圖中心（拖曳地圖對準十字）</p>
+    <div class="types" id="types"></div>
+    <input id="note" maxlength="60" placeholder="補充說明（選填），例如：警車兩台在路口">
+    <input id="rider" maxlength="16" placeholder="你的暱稱">
+    <div class="row"><button class="ghost" id="cancel">取消</button><button id="send" disabled>送出</button></div>
+  </div>
+</div>
+<div class="cross" id="cross" hidden>＋</div>
+<div id="toasts"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>window.TYPES = {{ types|tojson }};</script>
+<script src="/static/app.js"></script>
+</body>
+</html>
