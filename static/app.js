@@ -16,9 +16,11 @@ const ago = s => { const d = Math.max(0, Date.now() / 1000 - s); return d < 60 ?
 const left = s => s < 0 ? "" : s < 3600 ? `${Math.ceil(s / 60)} 分鐘後消失` : s < 86400 ? `${Math.round(s / 3600)} 小時後消失` : `${Math.round(s / 86400)} 天後消失`;
 
 // 可見地圖中心（扣掉下方清單）
+const wide = () => innerWidth >= 900;
 function viewCenter() {
-  const s = map.getSize(), sheet = $("sheet").offsetHeight;
-  return map.containerPointToLatLng([s.x / 2, (s.y - sheet) / 2]);
+  const s = map.getSize();
+  if (wide()) return map.containerPointToLatLng([(s.x + 436) / 2, s.y / 2]);
+  return map.containerPointToLatLng([s.x / 2, (s.y - $("sheet").offsetHeight) / 2]);
 }
 
 // ── 類型篩選 ──
@@ -87,7 +89,11 @@ $("types").onclick = e => {
   pickType = b.dataset.k; [...$("types").children].forEach(x => x.classList.toggle("on", x === b)); $("send").disabled = false;
 };
 $("rider").value = LS.get("rr_rider") || "";
-function placeCross() { const s = map.getSize(), r = $("map").getBoundingClientRect(); $("cross").style.top = r.top + (s.y - $("sheet").offsetHeight) / 2 + "px"; }
+function placeCross() {
+  const s = map.getSize(), r = $("map").getBoundingClientRect();
+  $("cross").style.top = r.top + (wide() ? s.y / 2 : (s.y - $("sheet").offsetHeight) / 2) + "px";
+  $("cross").style.left = wide() ? (s.x + 436) / 2 + "px" : "50%";
+}
 $("fab").onclick = () => { $("modal").hidden = false; $("cross").hidden = false; placeCross(); };
 $("cancel").onclick = () => { $("modal").hidden = true; $("cross").hidden = true; };
 $("send").onclick = async () => {

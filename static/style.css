@@ -63,6 +63,13 @@ select,input{font:inherit;background:#0e1116;color:var(--text);border:1px solid 
 @keyframes pop{from{transform:rotate(-45deg) scale(.2)}}
 .me{width:16px;height:16px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 0 6px rgba(59,130,246,.3)}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--card);color:var(--text)}
+@media (min-width:900px){
+  .sheet{left:16px;right:auto;width:420px;top:116px;bottom:16px;height:auto;border-radius:20px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .grip{display:none}.sheet-head{padding-top:14px}
+  .fab{bottom:24px;right:24px}.locate{bottom:24px;left:452px}
+  .filters{left:452px}
+  #toasts{left:auto;right:24px;transform:none}
+}
 /* 統計頁 */
 .page{padding:72px 16px 32px;max-width:1100px;margin:0 auto}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
