@@ -1,0 +1,4 @@
+flask>=3.0
+redis>=5.0
+gunicorn>=22.0
+fakeredis>=2.20 ; platform_system == "Windows"
